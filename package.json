@@ -1,0 +1,22 @@
+{
+  "name": "aichediscordqotd",
+  "version": "1.0.0",
+  "description": "Discord Question of the Day Bot for UCSB AIChE",
+  "main": "redditqotd.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vu-dylan/AIChEDiscordQOTD.git"
+  },
+  "author": "Dylan Vu",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vu-dylan/AIChEDiscordQOTD/issues"
+  },
+  "homepage": "https://github.com/vu-dylan/AIChEDiscordQOTD#readme",
+  "dependencies": {
+    "discord.js": "^12.5.3"
+  }
+}
