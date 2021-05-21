@@ -6,10 +6,11 @@ import Filter from 'bad-words'
 import dotenv from 'dotenv'
 import express from 'express';
 
-const app = express();
-const port = 3000;
+const APP = express();
+const PORT = 3000;
 
-app.get('/', (req, res) => res.send('Hello World!'));
+APP.get('/', (req, res) => res.send('Hello World!'));
+APP.listen(PORT, () => console.log(`Example app listening at http://localhost:${PORT}`));
 
 const client = new Discord.Client();
 const filter = new Filter();
