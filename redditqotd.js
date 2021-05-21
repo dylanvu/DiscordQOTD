@@ -1,9 +1,8 @@
-//import GetAskReddit from "./askreddit.js"
 import Axios from 'axios'
 import Discord from "discord.js"
-import cron from 'cron';
+import cron from 'cron'
 
-import dotenv from 'dotenv';
+import dotenv from 'dotenv'
 
 const client = new Discord.Client();
 dotenv.config();
@@ -16,29 +15,27 @@ const GetMessageIDs = (msg) => {
     return [channelid, guildid]
 }
 
-const TestQOTD = () => {
-    console.log("Question requested...")
 
-    async function GetAndSendQuestion() {
-        const TOP_POST_API = "https://www.reddit.com/r/askreddit/top.json"
-        let post = await Axios.get(TOP_POST_API);
-        let question = "**QOTD: " + post.data.data.children[0].data.title + "**";
-        for (let [currentChannelid, currentGuildid] of channelIdlist) {
-            client.channels.cache.get(currentChannelid).send(question);
-        }
+async function GetAndSendQuestion() {
+    const TOP_POST_API = "https://www.reddit.com/r/askreddit/top.json"
+    let post = await Axios.get(TOP_POST_API);
+    let question = "**QOTD: " + post.data.data.children[0].data.title + "**";
+    for (let [currentChannelid, currentGuildid] of channelIdlist) {
+        client.channels.cache.get(currentChannelid).send(question);
     }
-    GetAndSendQuestion();
 }
 
 // idList will hold every channel-guild id key-value pair
 let channelIdlist = new Map();
 
 // Schedule a message
-let qotdJob = cron.CronJob('00 00 9 * * *', () => {
-    console.log("Test Test");
-});
+// 0 0 9 * * * means 9:00 AM exactly
+let testJob = new cron.CronJob('0 0 9 * * *', () => {
+    console.log("Sending QOTD");
+    GetAndSendQuestion();
+}, null, true, 'America/Los_Angeles');
 
-//qotdJob.start();
+testJob.start();
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`)
@@ -47,24 +44,25 @@ client.on("ready", () => {
 // Control the sending of messages
 client.on("message", msg => {
     // Starting the Bot
-    if (msg.content === "!start") {
+    if (msg.content === "!qotd_start") {
         msg.reply("Starting QOTD!");
         let [channelid, guildid] = GetMessageIDs(msg);
         channelIdlist.set(channelid, guildid);
     }
 
-    if (msg.content === "!test"){
-        TestQOTD();
+    if (msg.content === "!qotd_test"){
+        // Remove later since this command sends to every channel on the list
+        GetAndSendQuestion();
     }
     
-    // Remove QOTD job from current channel
+    // Remove scheduled QOTD from current channel
     if (msg.content ==="!qotd_stop") {
-        msg.reply("Stopping QOTD... D:");
+        msg.reply("Stopping QOTD in this channel... D:");
         // Remove the channel id from the array of ids
         channelIdlist.delete(msg.channel.id);
     }
 
-    // Instantly Generating a question
+    // Instantly Generating another question
     if (msg.content === "!qotd_newq") {
         msg.reply("Getting new QOTD!");
         console.log("New Question here") // TODO: Trigger API call here to get the next top post?
@@ -72,7 +70,3 @@ client.on("message", msg => {
 })
 
 client.login(BOT_TOKEN);
-
-// TODO:
-// When you receive a message to set up the job, feed in the channel ID from that message as a parameter?
-// Experiment to see if the ID is saved between jobs or something like that?
