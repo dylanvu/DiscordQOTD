@@ -117,10 +117,10 @@ client.on("message", msg => {
     }
 
     if (msg.content === "!qotd_github") {
-        msg.reply("https://github.com/vu-dylan/AIChEDiscordQOTD");
+        msg.reply("https://github.com/vu-dylan/DiscordQOTD");
     }
     if (msg.content === "!qotd_help") {
-        msg.reply("To start daily QOTD, do !qotd_start \n To stop daily QOTD, do !qotd_stop \n To view the code, do !qotd_github ")
+        msg.reply("To start daily QOTD, do !qotd_start \n To stop daily QOTD, do !qotd_stop \n To view the code, do !qotd_github ");
     }
 })
 
