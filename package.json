@@ -2,6 +2,7 @@
   "name": "aichediscordqotd",
   "version": "1.0.0",
   "description": "Discord Question of the Day Bot for UCSB AIChE",
+  "type": "module",
   "main": "redditqotd.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -18,6 +19,7 @@
   },
   "homepage": "https://github.com/vu-dylan/AIChEDiscordQOTD#readme",
   "dependencies": {
+    "axios": "^0.21.1",
     "cron": "^1.8.2",
     "discord.js": "^12.5.3",
     "dotenv": "^9.0.2"

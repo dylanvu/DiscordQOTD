@@ -1,8 +1,11 @@
-const Discord = require("discord.js");
-const client = new Discord.Client();
-const cron = require('cron');
+//import GetAskReddit from "./askreddit.js"
+import Axios from 'axios'
+import Discord from "discord.js"
+import cron from 'cron';
 
-const dotenv = require('dotenv');
+import dotenv from 'dotenv';
+
+const client = new Discord.Client();
 dotenv.config();
 
 const BOT_TOKEN = process.env.TOKEN;
@@ -14,11 +17,17 @@ const GetMessageIDs = (msg) => {
 }
 
 const TestQOTD = () => {
-    let question = "**QOTD: here**";
+    console.log("Question requested...")
 
-    for (let [currentChannelid, currentGuildid] of channelIdlist) {
-        client.channels.cache.get(currentChannelid).send(question);
+    async function GetAndSendQuestion() {
+        const TOP_POST_API = "https://www.reddit.com/r/askreddit/top.json"
+        let post = await Axios.get(TOP_POST_API);
+        let question = "**QOTD: " + post.data.data.children[0].data.title + "**";
+        for (let [currentChannelid, currentGuildid] of channelIdlist) {
+            client.channels.cache.get(currentChannelid).send(question);
+        }
     }
+    GetAndSendQuestion();
 }
 
 // idList will hold every channel-guild id key-value pair
@@ -26,12 +35,7 @@ let channelIdlist = new Map();
 
 // Schedule a message
 let qotdJob = cron.CronJob('00 00 9 * * *', () => {
-    let question = "**QOTD here**"; // TODO: Replace this with an API call using axios?
-
-    // Iterate through every channel the bot is in
-    for (let [currentChannelid, currentGuildid] of channelIdlist) {
-        client.channels.cache.get(currentChannelid).send(question);
-    }
+    console.log("Test Test");
 });
 
 //qotdJob.start();
@@ -43,23 +47,21 @@ client.on("ready", () => {
 // Control the sending of messages
 client.on("message", msg => {
     // Starting the Bot
-    if (msg.content === "!qotd_start") {
+    if (msg.content === "!start") {
         msg.reply("Starting QOTD!");
         let [channelid, guildid] = GetMessageIDs(msg);
         channelIdlist.set(channelid, guildid);
     }
-    
-    if (msg.content === "!qotd_test"){
+
+    if (msg.content === "!test"){
         TestQOTD();
     }
     
     // Remove QOTD job from current channel
     if (msg.content ==="!qotd_stop") {
         msg.reply("Stopping QOTD... D:");
-        // TODO: Fix this stopping if we are making the job outside or something idk
         // Remove the channel id from the array of ids
-        channelIdlist.delete(msg.channel);
-        // qotdJob.stop();
+        channelIdlist.delete(msg.channel.id);
     }
 
     // Instantly Generating a question
@@ -72,9 +74,5 @@ client.on("message", msg => {
 client.login(BOT_TOKEN);
 
 // TODO:
-// 1. Send a message to a specific channel. Do I have to get the guild id, and then the channel id?
-//    If so, then figure out a way to store the id??? However, we can get the list of all guilds and channels the bot is managing.
-//    What if we saved each specific channel id in a JSON or something like that, a dictionary. And then, that can be used to hold the info?
-
 // When you receive a message to set up the job, feed in the channel ID from that message as a parameter?
 // Experiment to see if the ID is saved between jobs or something like that?
