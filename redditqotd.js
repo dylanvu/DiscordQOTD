@@ -4,6 +4,12 @@ import cron from 'cron'
 import Filter from 'bad-words'
 
 import dotenv from 'dotenv'
+import express from 'express';
+
+const app = express();
+const port = 3000;
+
+app.get('/', (req, res) => res.send('Hello World!'));
 
 const client = new Discord.Client();
 const filter = new Filter();
