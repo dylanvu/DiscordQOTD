@@ -110,6 +110,13 @@ client.on("message", msg => {
         msg.reply("Getting new QOTD!");
         console.log("New Question here") // TODO: Trigger API call here to get the next top post?
     }
+
+    if (msg.content === "!qotd_github") {
+        msg.reply("https://github.com/vu-dylan/AIChEDiscordQOTD");
+    }
 })
 
 client.login(BOT_TOKEN);
+
+// TODO: Figure out how to save channels the bot is in, instead of storing it in an array? For now, I'm using an array but if the app shuts off, everything is lost.
+// TODO: Host this thing
