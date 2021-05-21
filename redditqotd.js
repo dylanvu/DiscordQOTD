@@ -73,9 +73,14 @@ client.on("ready", () => {
 client.on("message", msg => {
     // Starting the Bot
     if (msg.content === "!qotd_start") {
-        msg.reply("Starting QOTD!");
         let [channelid, guildid] = GetMessageIDs(msg);
-        channelIdlist.set(channelid, guildid);
+        if (!channelIdlist.has(channelid)) {
+            msg.reply("Starting QOTD!");
+            channelIdlist.set(channelid, guildid);
+        } else {
+            msg.reply("QOTD has already been started. Please wait until 9:00 AM PST!");
+        }
+        
     }
 
     if (msg.content === "!qotd_test"){
@@ -114,9 +119,15 @@ client.on("message", msg => {
     if (msg.content === "!qotd_github") {
         msg.reply("https://github.com/vu-dylan/AIChEDiscordQOTD");
     }
+    if (msg.content === "!qotd_help") {
+        msg.reply("To start daily QOTD, do !qotd_start \n To stop daily QOTD, do !qotd_stop \n To view the code, do !qotd_github ")
+    }
 })
 
 client.login(BOT_TOKEN);
 
-// TODO: Figure out how to save channels the bot is in, instead of storing it in an array? For now, I'm using an array but if the app shuts off, everything is lost.
+// TODO: Figure out how to save channels the bot is in, instead of storing it in an array? For now, I'm using an array but if the app shuts off, everything is lost. Consider saving to database?
 // TODO: Host this thing
+// TODO: Randomly select from top posts?
+// TODO: Integrate custom questions?
+// TODO: Save questions to a database, incorporate a database mode?
