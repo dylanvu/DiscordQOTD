@@ -1,6 +1,6 @@
 # Discord Question of the Day (QOTD) Bot
 ## About
-This bot pulls the top daily question from r/AskReddit at 9:00 AM PST, makes sure there is no profanity, then sents it to your Discord Server!
+This bot pulls the top daily question from r/AskReddit at 9:00 AM PST, makes sure there is no profanity, then sends it to your Discord Server!
 It's perfect for some community engagement by prompting some discussion.
 ## Adding the Bot to Your Server and Channel
 1. Copy and paste this link into your browser: https://discord.com/api/oauth2/authorize?client_id=844084506615873556&permissions=3072&scope=bot
