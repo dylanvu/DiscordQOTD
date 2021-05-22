@@ -113,7 +113,7 @@ async function AddChannelIfExists(mongoclient, channelid, guildid, msg) {
     )
     if (!someCursor) {
         console.log("Adding new channel");
-        msg.reply("Starting QOTD!");
+        msg.reply("QOTD has been added! Stay tuned for 9:00 AM PST!");
         channelCollection.insertOne({
             channel_id : channelid,
             guild_id : guildid
@@ -159,9 +159,6 @@ async function RemoveChannelIfExists(mongoclient, channelid, guildid, msg) {
         msg.reply("It appears you haven't added QOTD to this channel yet. At least try me out before removing me... D:");
     }
 }
-
-// idList will hold every channel-guild id key-value pair
-let channelIdlist = new Map();
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`)
@@ -217,11 +214,9 @@ client.on("message", msg => {
 
 client.login(BOT_TOKEN);
 
-// TODO: Figure out how to save channels the bot is in, instead of storing it in an array? For now, I'm using an array but if the app shuts off, everything is lost. Consider saving to database?
-// TODO: Host this thing
 // TODO: Randomly select from top posts?
 // TODO: Integrate custom questions?
 // TODO: Save questions to a database, incorporate a database mode?
 // TODO: Fix the warnings, like [MONGODB DRIVER] Warning: the options [servers] is not supported
-// TODO: Handle deleted channels?
+// TODO: Handle deleted channels? When you're sending, check if the channel is deleted. If it is, remove it from the database
 // TODO: Make functions nicer somehow
