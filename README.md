@@ -22,3 +22,5 @@ It's perfect for some community engagement by prompting some discussion.
 * [Axios](https://www.npmjs.com/package/axios) - getting questions from Reddit
 * [MongoDB](https://www.mongodb.com/) - storing channel ids to send the QOTD messages to
 * [cron](https://www.npmjs.com/package/cron) - to schedule QOTD messages
+## Issues
+* Due to the method of hosting this Discord Bot, there are random (but short) outages. If well timed enough to overlap with 9:00 AM PST, a question will NOT be sent that day without any notification. There's no way around this issue except for a dedicated paid hosting service.
