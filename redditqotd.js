@@ -19,7 +19,7 @@ const client = new Discord.Client();
 const BOT_TOKEN = process.env.TOKEN;
 
 const filter = new Filter();
-filter.addWords('Reddit', 'reddit', 'redditor', 'karma', 'subreddit', 'repost'); // Since we're stealing questions from r/AskReddit, filter out some reddit-related words
+filter.addWords('Reddit', 'reddit', 'redditor', 'karma', 'subreddit', 'repost', 'sexual'); // Flter out some reddit-related words and any other words that get by the default filter
 
 const mongoclient = new mongo.MongoClient(process.env.MONGO_DB_CONNECTION, { useUnifiedTopology: true, useNewUrlParser: true });
 
@@ -37,6 +37,8 @@ let testJob = new cron.CronJob('0 0 9 * * *', () => {
 }, null, true, 'America/Los_Angeles');
 
 testJob.start();
+
+// <--------------------------------------- Question Sending Functions --------------------------------------->
 
 async function GetAndSendQuestion() {
 
@@ -59,34 +61,123 @@ async function SendQuestion(mongoclient) {
     let profanity = true;
     let i = 0;
     // See if the top 25 posts are profane free, and get the first one
-    while (profanity || i > 25) {
-        question = "**QOTD: " + post.data.data.children[i].data.title + "**";
+    while (profanity) {
+        question = post.data.data.children[i].data.title;
         profanity = filter.isProfane(question);
         //console.log(profanity);
         i++;
+        if (i > 25) {
+            break;
+        }
     }
     // If, for some reason, the top 25 results ALL have profanity, try the top 100 posts
     if (profanity) {
         while (profanity || i > 100) {
             post = await Axios.get(TOP_POST_API + "?limit=100");
-            question = "**QOTD: " + post.data.data.children[i].data.title + "**";
+            question = post.data.data.children[i].data.title;
             profanity = filter.isProfane(question);
             i++;
+            if (i > 100) {
+                break;
+            }
         }
     }
     // If the top 100 posts ALL have profanity, throw a general error
     if (profanity) {
         question = "404 Question not found. Please make your own QOTD this time, sorry!";
+    } else {
+        question = "**QOTD: " + question +  "**";
     }
 
     // TODO: Randomize between non-profane questions? So people who commonly use Reddit will see a relatively new question?
     console.log("Sending question");
     let channelCollection = await mongoclient.db().collection("ActiveChannels");
     let allCursor = await channelCollection.find();
+    // Reset previous question for every channel to be the current top question
+    channelCollection.update({}, { $set: {
+        prev_question : [question]
+    }});
     allCursor.forEach((thisChannel) => {
         client.channels.cache.get(thisChannel.channel_id).send(question);
     })
 }
+
+async function GetAndSendQuestionToChannel(channelid, guildid, msg) {
+
+    try {
+        // Connect to MongoDB Cluster
+        await mongoclient.connect();
+        await SendQuestionToChannel(mongoclient, channelid, guildid, msg);
+    } catch (e) {
+        console.error(e);
+    } finally {
+        //await mongoclient.close();
+    }
+}
+
+async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
+    const TOP_POST_API = "https://www.reddit.com/r/askreddit/top.json";
+    // TODO: Error catching
+    let post = await Axios.get(TOP_POST_API);
+    let question;
+    let profanity = true;
+    let channelCollection = await mongoclient.db().collection("ActiveChannels");
+    let i = 0;
+    let someCursor = await channelCollection.findOne(
+        {
+            channel_id : channelid,
+            guild_id : guildid
+        }
+    )
+    if (someCursor) {
+        // Create an array from the set to enable quicker checking of previous questions
+        let prevQset = new Set(someCursor.prev_question);
+        
+        // See if the top 25 posts are profane free and not a previous one, and get the first one
+        while (profanity || prevQset.has(question)) {
+            question = post.data.data.children[i].data.title;
+            profanity = filter.isProfane(question);
+            //console.log(profanity);
+            i++;
+            if (i > 25) {
+                break;
+            }
+        }
+        // If, for some reason, the top 25 results ALL have profanity, try the top 100 posts
+        if (profanity) {
+            while (profanity || prevQset.has(question)) {
+                post = await Axios.get(TOP_POST_API + "?limit=100");
+                question = post.data.data.children[i].data.title;
+                profanity = filter.isProfane(question);
+                i++;
+                if (i > 100) {
+                    break;
+                }
+            }
+        }
+        
+        // If the top 100 posts ALL have profanity, throw a general error
+        if (profanity) {
+            question = "404 Question not found. Please make your own QOTD this time, sorry!";
+        } else {
+            prevQset.add(question);
+            question = "**QOTD: " + question +  "**";
+        }
+        
+        console.log("Sending question to single channel");
+        await channelCollection.updateOne({
+            channel_id : channelid,
+            guild_id : guildid
+        }, { $set: {
+            prev_question : Array.from(prevQset)
+        }});
+        client.channels.cache.get(channelid).send(question);
+    } else {
+        msg.reply("It appears you haven't added QOTD to this channel yet. Do `!qotd_start` **then** do `!qotd_newq`!")
+    }
+}
+
+// <------------------------------------ MongoDB functions -------------------------------------------------->
 
 async function AddChannelToDatabase(mongoclient, channelid, guildid, msg) {
     try {
@@ -108,19 +199,20 @@ async function AddChannelIfExists(mongoclient, channelid, guildid, msg) {
     let someCursor = await channelCollection.findOne(
         {
             channel_id : channelid,
-            guild_id : guildid
+            guild_id : guildid,
         }
     )
     if (!someCursor) {
         console.log("Adding new channel");
-        msg.reply("QOTD has been added! Stay tuned for 9:00 AM PST!");
+        msg.reply("QOTD has been added! Stay tuned for 9:00 AM PST, or try `!qotd_new` for a question now!");
         channelCollection.insertOne({
             channel_id : channelid,
-            guild_id : guildid
+            guild_id : guildid,
+            prev_question : []
         })
     } else {
         console.log("Channel already exists");
-        msg.reply("QOTD has already been started. Please wait until 9:00 AM PST!");
+        msg.reply("QOTD has already been started. Please wait until 9:00 AM PST, or try `!qotd_newq`!");
     }
 }
 
@@ -165,7 +257,7 @@ client.on("ready", () => {
 })
 
 
-// <-------------------------------------- Control the sending of messages --------------------------------------------->
+// <-------------------------------------- Discord.js Control the sending of messages --------------------------------------------->
 client.on("message", msg => {
     // Starting the Bot
     if (msg.content === "!qotd_start") {
@@ -187,9 +279,8 @@ client.on("message", msg => {
 
     // Instantly Generating another question
     if (msg.content === "!qotd_newq") {
-        msg.reply("Getting new QOTD!");
-        msg.reply("Oops I haven't been programmed this function yet!");
-        console.log("New Question here") // TODO: Trigger API call here to get the next top post?
+        let [channelid, guildid] = GetMessageIDs(msg);
+        GetAndSendQuestionToChannel(channelid, guildid, msg);
     }
 
     if (msg.content === "!qotd_github") {
@@ -219,5 +310,5 @@ client.login(BOT_TOKEN);
 // TODO: Save questions to a database, incorporate a database mode?
 // TODO: Fix the warnings, like [MONGODB DRIVER] Warning: the options [servers] is not supported
 // TODO: Handle deleted channels? When you're sending, check if the channel is deleted. If it is, remove it from the database
-// TODO: Make functions nicer somehow
-// TODO: Create the !qotd_newq question. Save previous question to a database, then when you do the command, iterate through questions from the API until a new question is found?
+// TODO: Make async functions nicer somehow
+// TODO: Create functions for repeated code
