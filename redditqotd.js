@@ -294,9 +294,9 @@ client.on("message", msg => {
     // Joke Test
     if (msg.content === "!qotd_testing"){
         let [channelid, guildid] = GetMessageIDs(msg);
-        client.channels.cache.get(channelid).send("npm ERR! code ELIFECYCLE \n npm ERR! errno 1 \n npm ERR! discordqotd@1.0.0 start: `node redditqotd.js` \n npm ERR! \n npm ERR! Failed at the discordqotd@1.0.0 start script. \n npm ERR! This is probably not a problem with npm. There is likely additional logging output above.");
+        client.channels.cache.get(channelid).send(process.env.FUNNY_ERROR);
         setTimeout(() => {
-            client.channels.cache.get(channelid).send("hahajkheresyourquestionoftheday");
+            client.channels.cache.get(channelid).send(process.env.FUNNY_RESPONSE);
             GetAndSendQuestion();
         }, 10000);
         
@@ -312,3 +312,4 @@ client.login(BOT_TOKEN);
 // TODO: Handle deleted channels? When you're sending, check if the channel is deleted. If it is, remove it from the database
 // TODO: Make async functions nicer somehow
 // TODO: Create functions for repeated code
+// TODO: Set user permissions to use bot?
