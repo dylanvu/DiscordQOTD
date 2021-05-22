@@ -271,11 +271,6 @@ client.on("message", msg => {
         RemoveChannelFromDatabase(channelid, guildid, msg);
     }
 
-    if (msg.content === "!qotd_test"){
-        // Remove later since this command sends to every channel on the list
-        GetAndSendQuestion();
-    }
-
     // Instantly Generating another question
     if (msg.content === "!qotd_newq") {
         let [channelid, guildid] = GetMessageIDs(msg);
@@ -296,7 +291,7 @@ client.on("message", msg => {
         client.channels.cache.get(channelid).send(process.env.FUNNY_ERROR);
         setTimeout(() => {
             client.channels.cache.get(channelid).send(process.env.FUNNY_RESPONSE);
-            GetAndSendQuestion();
+            GetAndSendQuestionToChannel(channelid, guildid, msg);
         }, 10000);
         
     }
