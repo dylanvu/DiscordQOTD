@@ -32,7 +32,7 @@ const GetMessageIDs = (msg) => {
 // Schedule a message using cron
 // 0 0 9 * * * means 9:00 AM exactly
 let testJob = new cron.CronJob('0 0 9 * * *', () => {
-    console.log("Sending QOTD");
+    console.log("Sending question to all channels");
     GetAndSendQuestion();
 }, null, true, 'America/Los_Angeles');
 
@@ -90,7 +90,6 @@ async function SendQuestion(mongoclient) {
     }
 
     // TODO: Randomize between non-profane questions? So people who commonly use Reddit will see a relatively new question?
-    console.log("Sending question");
     let channelCollection = await mongoclient.db().collection("ActiveChannels");
     let allCursor = await channelCollection.find();
     // Reset previous question for every channel to be the current top question
@@ -164,7 +163,7 @@ async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
             question = "**QOTD: " + question +  "**";
         }
         
-        console.log("Sending question to single channel");
+        console.log("Sending question to channel " + channelid);
         await channelCollection.updateOne({
             channel_id : channelid,
             guild_id : guildid
@@ -203,7 +202,7 @@ async function AddChannelIfExists(mongoclient, channelid, guildid, msg) {
         }
     )
     if (!someCursor) {
-        console.log("Adding new channel");
+        console.log("Adding new channel with id: " + channelid);
         msg.reply("QOTD has been added! Stay tuned for 9:00 AM PST, or try `!qotd_newq` for a question now!");
         channelCollection.insertOne({
             channel_id : channelid,
@@ -211,7 +210,7 @@ async function AddChannelIfExists(mongoclient, channelid, guildid, msg) {
             prev_question : []
         })
     } else {
-        console.log("Channel already exists");
+        console.log(channelid + " already exists in database");
         msg.reply("QOTD has already been started. Please wait until 9:00 AM PST, or try `!qotd_newq`!");
     }
 }
@@ -240,7 +239,7 @@ async function RemoveChannelIfExists(mongoclient, channelid, guildid, msg) {
         }
     )
     if (someCursor) {
-        console.log("Deleting channel");
+        console.log("Deleting channel " + channelid);
         msg.reply("Stopping QOTD in this channel... D:");
         channelCollection.deleteOne({
             channel_id : channelid,
