@@ -43,13 +43,15 @@ async function GetAndSendQuestion() {
     try {
         // Connect to MongoDB Cluster
         await mongoclient.connect();
-        await AddChannelIfExists(mongoclient);
+        await SendQuestion(mongoclient);
     } catch (e) {
         console.error(e);
     } finally {
         //await mongoclient.close();
     }
+}
 
+async function SendQuestion(mongoclient) {
     const TOP_POST_API = "https://www.reddit.com/r/askreddit/top.json";
     // TODO: Error catching
     let post = await Axios.get(TOP_POST_API);
@@ -78,10 +80,12 @@ async function GetAndSendQuestion() {
     }
 
     // TODO: Randomize between non-profane questions? So people who commonly use Reddit will see a relatively new question?
-
-    for (let [currentChannelid, currentGuildid] of channelIdlist) {
-        client.channels.cache.get(currentChannelid).send(question);
-    }
+    console.log("Sending question");
+    let channelCollection = await mongoclient.db().collection("ActiveChannels");
+    let allCursor = await channelCollection.find();
+    allCursor.forEach((thisChannel) => {
+        client.channels.cache.get(thisChannel.channel_id).send(question);
+    })
 }
 
 async function AddChannelToDatabase(mongoclient, channelid, guildid, msg) {
@@ -187,6 +191,7 @@ client.on("message", msg => {
     // Instantly Generating another question
     if (msg.content === "!qotd_newq") {
         msg.reply("Getting new QOTD!");
+        msg.reply("Oops I haven't been programmed this function yet!");
         console.log("New Question here") // TODO: Trigger API call here to get the next top post?
     }
 
@@ -200,14 +205,10 @@ client.on("message", msg => {
     
     // Joke Test
     if (msg.content === "!qotd_testing"){
-        // Remove later since this command sends to every channel on the list
-        for (let [currentChannelid, currentGuildid] of channelIdlist) {
-            client.channels.cache.get(currentChannelid).send("npm ERR! code ELIFECYCLE \n npm ERR! errno 1 \n npm ERR! discordqotd@1.0.0 start: `node redditqotd.js` \n npm ERR! \n npm ERR! Failed at the discordqotd@1.0.0 start script. \n npm ERR! This is probably not a problem with npm. There is likely additional logging output above.");
-        }
+        let [channelid, guildid] = GetMessageIDs(msg);
+        client.channels.cache.get(channelid).send("npm ERR! code ELIFECYCLE \n npm ERR! errno 1 \n npm ERR! discordqotd@1.0.0 start: `node redditqotd.js` \n npm ERR! \n npm ERR! Failed at the discordqotd@1.0.0 start script. \n npm ERR! This is probably not a problem with npm. There is likely additional logging output above.");
         setTimeout(() => {
-            for (let [currentChannelid, currentGuildid] of channelIdlist) {
-                client.channels.cache.get(currentChannelid).send("hahajkheresyourquestionoftheday");
-            }
+            client.channels.cache.get(channelid).send("hahajkheresyourquestionoftheday");
             GetAndSendQuestion();
         }, 10000);
         
