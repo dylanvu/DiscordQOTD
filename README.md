@@ -4,13 +4,13 @@ This bot pulls the top daily question from r/AskReddit at 9:00 AM PST, makes sur
 It's perfect for some community engagement by prompting some discussion.
 ## Adding the Bot to Your Server and Channel
 1. Copy and paste this link into your browser: https://discord.com/api/oauth2/authorize?client_id=844084506615873556&permissions=3072&scope=bot
-2. Log into Discord and add the bot to your server
-3. Go into your text channel of choice and type in `!qotd_start`
+2. Log into Discord and add the bot to your server. **Make sure you have admin privileges**.
+3. Go into your text channel that you want the question to be sent in and type in `!qotd_start`.
 4. Wait for a confirmation reply. If there's no reply, try `!qotd_start` in a few minutes.
 ## Removing the Bot
-1. Type in `!qotd_stop` in the text channel that QOTDs are being sent
+1. Type in `!qotd_stop` in the text channel that QOTDs are being sent.
 2. Wait for a confirmation reply. If there's no reply, try `!qotd_stop` in a few minutes.
-3. After removing the bot from all of the channels, kick the bot out of your server
+3. After removing the bot from all of the channels, kick the bot out of your server.
 ## Bot Commands
 * `!qotd_help` for a list of commands
 * `!qotd_start` to start daily questions in your channel
