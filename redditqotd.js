@@ -204,7 +204,7 @@ async function AddChannelIfExists(mongoclient, channelid, guildid, msg) {
     )
     if (!someCursor) {
         console.log("Adding new channel");
-        msg.reply("QOTD has been added! Stay tuned for 9:00 AM PST, or try `!qotd_new` for a question now!");
+        msg.reply("QOTD has been added! Stay tuned for 9:00 AM PST, or try `!qotd_newq` for a question now!");
         channelCollection.insertOne({
             channel_id : channelid,
             guild_id : guildid,
