@@ -196,7 +196,7 @@ client.on("message", msg => {
         msg.reply("https://github.com/vu-dylan/DiscordQOTD");
     }
     if (msg.content === "!qotd_help") {
-        msg.reply("To start daily QOTD, do !qotd_start \n To stop daily QOTD, do !qotd_stop \n To view the code, do !qotd_github ");
+        msg.reply("To start daily QOTD, do `!qotd_start` \nTo stop daily QOTD, do `!qotd_stop` \nTo view the code, do `!qotd_github`");
     }
 
     
@@ -220,3 +220,4 @@ client.login(BOT_TOKEN);
 // TODO: Fix the warnings, like [MONGODB DRIVER] Warning: the options [servers] is not supported
 // TODO: Handle deleted channels? When you're sending, check if the channel is deleted. If it is, remove it from the database
 // TODO: Make functions nicer somehow
+// TODO: Create the !qotd_newq question. Save previous question to a database, then when you do the command, iterate through questions from the API until a new question is found?
