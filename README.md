@@ -15,6 +15,7 @@ It's perfect for some community engagement by prompting some discussion.
 * `!qotd_help` for a list of commands
 * `!qotd_start` to start daily questions in your channel
 * `!qotd_stop` to stop daily questions in your channel
+* `!qotd_github` to view this respository
 ## Technologies Used
 * [Node.JS](https://nodejs.org/en/) - Java Runtime Environment, the main "language" (technically JavaScript)
 * [DiscordJS](https://discord.js.org/#/) - module for interacting with Discord
