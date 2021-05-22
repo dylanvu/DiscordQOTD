@@ -64,6 +64,9 @@ async function SendQuestion(mongoclient) {
     while (profanity) {
         question = post.data.data.children[i].data.title;
         profanity = filter.isProfane(question);
+        if (post.data.data.children[i].data.whitelist_status == "promo_adult_nsfw") {
+            profanity = true;
+        }
         //console.log(profanity);
         i++;
         if (i > 25) {
@@ -76,6 +79,9 @@ async function SendQuestion(mongoclient) {
             post = await Axios.get(TOP_POST_API + "?limit=100");
             question = post.data.data.children[i].data.title;
             profanity = filter.isProfane(question);
+            if (post.data.data.children[i].data.whitelist_status == "promo_adult_nsfw") {
+                profanity = true;
+            }
             i++;
             if (i > 100) {
                 break;
@@ -136,6 +142,9 @@ async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
         while (profanity || prevQset.has(question)) {
             question = post.data.data.children[i].data.title;
             profanity = filter.isProfane(question);
+            if (post.data.data.children[i].data.whitelist_status == "promo_adult_nsfw") {
+                profanity = true;
+            }
             //console.log(profanity);
             i++;
             if (i > 25) {
@@ -148,6 +157,9 @@ async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
                 post = await Axios.get(TOP_POST_API + "?limit=100");
                 question = post.data.data.children[i].data.title;
                 profanity = filter.isProfane(question);
+                if (post.data.data.children[i].data.whitelist_status == "promo_adult_nsfw") {
+                    profanity = true;
+                }
                 i++;
                 if (i > 100) {
                     break;
