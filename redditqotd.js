@@ -26,6 +26,17 @@ filter.addWords(...JSON_FILTER.words); // Filter out words from the JSON file
 
 const mongoclient = new mongo.MongoClient(process.env.MONGO_DB_CONNECTION, { useUnifiedTopology: true, useNewUrlParser: true });
 
+// Connect to MongoDB, you only have to do this once at the beginning
+const MongoConnect = async () => {
+    try {
+        await mongoclient.connect()
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+MongoConnect();
+
 const GetMessageIDs = (msg) => {
     let channelid = msg.channel.id;
     let guildid = msg.channel.guild.id;
@@ -47,7 +58,7 @@ async function GetAndSendQuestion() {
 
     try {
         // Connect to MongoDB Cluster
-        await mongoclient.connect();
+        //await mongoclient.connect();
         await SendQuestionToAllChannels(mongoclient);
     } catch (e) {
         console.error(e);
@@ -68,7 +79,7 @@ async function SendQuestionToAllChannels(mongoclient) {
     // If, for some reason, the top 25 results ALL have profanity, try the top 100 posts
     if (questionTosend.profanity) {
         post = await Axios.get(TOP_POST_API + "?limit=100");
-        questionTosend = GetNonProfaneQuestion(post, prevQset, filter, 100)
+        questionTosend = GetNonProfaneQuestion(post, prevQset, filter, 100);
     }
     let question;
     // If the top 100 posts ALL have profanity, throw a general error
@@ -98,7 +109,7 @@ async function GetAndSendQuestionToChannel(channelid, guildid, msg) {
 
     try {
         // Connect to MongoDB Cluster
-        await mongoclient.connect();
+        //await mongoclient.connect();
         await SendQuestionToChannel(mongoclient, channelid, guildid, msg);
     } catch (e) {
         console.error(e);
@@ -119,17 +130,17 @@ async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
             channel_id : channelid,
             guild_id : guildid
         }
-    )
+    );
     if (someCursor) {
         // Create a set from the MongoDB array to enable quicker checking of previous questions
         let prevQset = new Set(someCursor.prev_question);
         
         // See if the top 25 posts are profane free and not a previous one, and get the first one
-        questionTosend = GetNonProfaneQuestion(post, prevQset, filter, 25)
+        questionTosend = GetNonProfaneQuestion(post, prevQset, filter, 25);
         // If, for some reason, the top 25 results ALL have profanity, try the top 100 posts
         if (questionTosend.profanity) {
             post = await Axios.get(TOP_POST_API + "?limit=100");
-            questionTosend = GetNonProfaneQuestion(post, prevQset, filter, 100)
+            questionTosend = GetNonProfaneQuestion(post, prevQset, filter, 100);
         }
         
         // If the top 100 posts ALL have profanity, throw a general error
@@ -139,7 +150,7 @@ async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
         } else {
             prevQset.add(questionTosend.question);
             question = "**QOTD: " + questionTosend.question +  "**";
-        }
+        };
         
         console.log("Sending question to channel " + channelid);
         await channelCollection.updateOne({
@@ -151,7 +162,7 @@ async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
         client.channels.cache.get(channelid).send(question);
     } else {
         msg.reply("It appears you haven't added QOTD to this channel yet. Do `!qotd_start` **then** do `!qotd_newq`!")
-    }
+    };
 }
 
 // <------------------------------------ MongoDB functions -------------------------------------------------->
@@ -159,13 +170,13 @@ async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
 async function AddChannelToDatabase(mongoclient, channelid, guildid, msg) {
     try {
         // Connect to MongoDB Cluster
-        await mongoclient.connect();
+        //await mongoclient.connect();
         await AddChannelIfExists(mongoclient, channelid, guildid, msg);
     } catch (e) {
         console.error(e);
     } finally {
         //await mongoclient.close();
-    }
+    };
 }
 
 async function AddChannelIfExists(mongoclient, channelid, guildid, msg) {
@@ -196,7 +207,7 @@ async function AddChannelIfExists(mongoclient, channelid, guildid, msg) {
 async function RemoveChannelFromDatabase(channelid, guildid, msg) {
     try {
         // Connect to MongoDB Cluster
-        await mongoclient.connect();
+        //await mongoclient.connect();
         await RemoveChannelIfExists(mongoclient, channelid, guildid, msg);
     } catch (e) {
         console.error(e);
@@ -280,7 +291,6 @@ client.login(BOT_TOKEN);
 // TODO: Randomly select from top posts?
 // TODO: Integrate custom questions?
 // TODO: Save questions to a database, incorporate a database mode?
-// TODO: Fix the warnings, like [MONGODB DRIVER] Warning: the options [servers] is not supported
 // TODO: Handle deleted channels? When you're sending, check if the channel is deleted. If it is, remove it from the database
 // TODO: Make async functions nicer somehow
 // TODO: Create functions for repeated code
