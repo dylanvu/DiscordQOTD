@@ -8,6 +8,8 @@ import express from 'express'
 import JSON_FILTER from "./filteredwords.json"
 // Note: start with a `--experimental-json-modules`
 
+import GetNonProfaneQuestion from './GetNonProfaneQuestion.js'
+
 dotenv.config();
 
 const APP = express();
@@ -125,10 +127,10 @@ async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
     const TOP_POST_API = "https://www.reddit.com/r/askreddit/top.json";
     // TODO: Error catching
     let post = await Axios.get(TOP_POST_API);
-    let question;
-    let profanity = true;
+    //let question;
+    let questionTosend; // This is an object with attribute question and profanity
+    //let profanity = true;
     let channelCollection = await mongoclient.db().collection("ActiveChannels");
-    let i = 0;
     let someCursor = await channelCollection.findOne(
         {
             channel_id : channelid,
@@ -136,44 +138,26 @@ async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
         }
     )
     if (someCursor) {
-        // Create an array from the set to enable quicker checking of previous questions
+        // Create a set from the MongoDB array to enable quicker checking of previous questions
         let prevQset = new Set(someCursor.prev_question);
         
         // See if the top 25 posts are profane free and not a previous one, and get the first one
-        while (profanity || prevQset.has(question)) {
-            question = post.data.data.children[i].data.title;
-            profanity = filter.isProfane(question);
-            if (post.data.data.children[i].data.whitelist_status == "promo_adult_nsfw") {
-                profanity = true;
-            }
-            //console.log(profanity);
-            i++;
-            if (i > 25) {
-                break;
-            }
-        }
+        questionTosend = GetNonProfaneQuestion(post, prevQset, filter, 25)
         // If, for some reason, the top 25 results ALL have profanity, try the top 100 posts
-        if (profanity) {
-            while (profanity || prevQset.has(question)) {
-                post = await Axios.get(TOP_POST_API + "?limit=100");
-                question = post.data.data.children[i].data.title;
-                profanity = filter.isProfane(question);
-                if (post.data.data.children[i].data.whitelist_status == "promo_adult_nsfw") {
-                    profanity = true;
-                }
-                i++;
-                if (i > 100) {
-                    break;
-                }
-            }
+        if (questionTosend.profanity) {
+            post = await Axios.get(TOP_POST_API + "?limit=100");
+            questionTosend = GetNonProfaneQuestion(post, prevQset, filter, 100)
         }
         
         // If the top 100 posts ALL have profanity, throw a general error
-        if (profanity) {
+        let question;
+        if (questionTosend.profanity) {
             question = "404 Question not found. Please make your own QOTD this time, sorry!";
         } else {
-            prevQset.add(question);
-            question = "**QOTD: " + question +  "**";
+            // prevQset.add(question);
+            // question = "**QOTD: " + question +  "**";
+            prevQset.add(questionTosend.question);
+            question = "**QOTD: " + questionTosend.question +  "**";
         }
         
         console.log("Sending question to channel " + channelid);
@@ -320,3 +304,4 @@ client.login(BOT_TOKEN);
 // TODO: Make async functions nicer somehow
 // TODO: Create functions for repeated code
 // TODO: Set user permissions to use bot?
+// TODO: Toggle filter option
