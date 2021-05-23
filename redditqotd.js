@@ -19,7 +19,7 @@ const client = new Discord.Client();
 const BOT_TOKEN = process.env.TOKEN;
 
 const filter = new Filter();
-filter.addWords('Reddit', 'reddit', 'redditor', 'karma', 'subreddit', 'repost', 'sexual'); // Flter out some reddit-related words and any other words that get by the default filter
+filter.addWords('Reddit', 'reddit', 'redditor', 'askreddit', 'karma', 'subreddit', 'repost', 'crosspost', 'sexual', 'flirt', 'flirting', "into you", 'date'); // Flter out some reddit-related words and other words
 
 const mongoclient = new mongo.MongoClient(process.env.MONGO_DB_CONNECTION, { useUnifiedTopology: true, useNewUrlParser: true });
 
