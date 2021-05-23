@@ -270,10 +270,9 @@ client.on("message", msg => {
         msg.reply("https://github.com/vu-dylan/DiscordQOTD");
     }
     if (msg.content === "!qotd_help") {
-        msg.reply("To start daily QOTD, do `!qotd_start` \nTo stop daily QOTD, do `!qotd_stop` \nTo view the code, do `!qotd_github`");
+        msg.reply("To add QOTD, do `!qotd_start` \nTo remove QOTD, do `!qotd_stop` \nTo get a new question, do `!qotd_newq` \nTo view the code, do `!qotd_github`");
     }
 
-    
     // Joke Test
     if (msg.content === "!qotd_testing"){
         let [channelid, guildid] = GetMessageIDs(msg);
