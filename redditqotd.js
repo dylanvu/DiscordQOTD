@@ -48,7 +48,7 @@ async function GetAndSendQuestion() {
     try {
         // Connect to MongoDB Cluster
         await mongoclient.connect();
-        await SendQuestion(mongoclient);
+        await SendQuestionToAllChannels(mongoclient);
     } catch (e) {
         console.error(e);
     } finally {
@@ -56,56 +56,40 @@ async function GetAndSendQuestion() {
     }
 }
 
-async function SendQuestion(mongoclient) {
+async function SendQuestionToAllChannels(mongoclient) {
     const TOP_POST_API = "https://www.reddit.com/r/askreddit/top.json";
     // TODO: Error catching
     let post = await Axios.get(TOP_POST_API);
-    let question;
-    let profanity = true;
-    let i = 0;
+    let questionTosend;
+
     // See if the top 25 posts are profane free, and get the first one
-    while (profanity) {
-        question = post.data.data.children[i].data.title;
-        profanity = filter.isProfane(question);
-        if (post.data.data.children[i].data.whitelist_status == "promo_adult_nsfw") {
-            profanity = true;
-        }
-        //console.log(profanity);
-        i++;
-        if (i > 25) {
-            break;
-        }
-    }
+    let prevQset = new Set();
+    questionTosend = GetNonProfaneQuestion(post, prevQset, filter, 25)
     // If, for some reason, the top 25 results ALL have profanity, try the top 100 posts
-    if (profanity) {
-        while (profanity || i > 100) {
-            post = await Axios.get(TOP_POST_API + "?limit=100");
-            question = post.data.data.children[i].data.title;
-            profanity = filter.isProfane(question);
-            if (post.data.data.children[i].data.whitelist_status == "promo_adult_nsfw") {
-                profanity = true;
-            }
-            i++;
-            if (i > 100) {
-                break;
-            }
-        }
+    if (questionTosend.profanity) {
+        post = await Axios.get(TOP_POST_API + "?limit=100");
+        questionTosend = GetNonProfaneQuestion(post, prevQset, filter, 100)
     }
+    let question;
     // If the top 100 posts ALL have profanity, throw a general error
-    if (profanity) {
+    if (questionTosend.profanity) {
         question = "404 Question not found. Please make your own QOTD this time, sorry!";
     } else {
-        question = "**QOTD: " + question +  "**";
+        question = "**QOTD: " + questionTosend.question +  "**";
     }
 
     // TODO: Randomize between non-profane questions? So people who commonly use Reddit will see a relatively new question?
+    // Now, use MongoDB to get active channels
     let channelCollection = await mongoclient.db().collection("ActiveChannels");
     let allCursor = await channelCollection.find();
+
     // Reset previous question for every channel to be the current top question
     channelCollection.update({}, { $set: {
         prev_question : [question]
     }});
+
     allCursor.forEach((thisChannel) => {
+        // TODO: Add channel deletion check here and removal from collection
         client.channels.cache.get(thisChannel.channel_id).send(question);
     })
 }
@@ -129,7 +113,6 @@ async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
     let post = await Axios.get(TOP_POST_API);
     //let question;
     let questionTosend; // This is an object with attribute question and profanity
-    //let profanity = true;
     let channelCollection = await mongoclient.db().collection("ActiveChannels");
     let someCursor = await channelCollection.findOne(
         {
@@ -154,8 +137,6 @@ async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
         if (questionTosend.profanity) {
             question = "404 Question not found. Please make your own QOTD this time, sorry!";
         } else {
-            // prevQset.add(question);
-            // question = "**QOTD: " + question +  "**";
             prevQset.add(questionTosend.question);
             question = "**QOTD: " + questionTosend.question +  "**";
         }
