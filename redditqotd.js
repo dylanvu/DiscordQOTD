@@ -4,13 +4,14 @@ import Discord from "discord.js"
 import cron from 'cron'
 import Filter from 'bad-words'
 import mongo from 'mongodb'
-
 import express from 'express'
+import JSON_FILTER from "./filteredwords.json"
+// Note: start with a `--experimental-json-modules`
+
+dotenv.config();
 
 const APP = express();
 const PORT = 3000;
-
-dotenv.config();
 
 APP.get('/', (req, res) => res.send('Hello World!'));
 APP.listen(PORT, () => console.log(`Discord QOTD app listening at http://localhost:${PORT}`));
@@ -19,7 +20,7 @@ const client = new Discord.Client();
 const BOT_TOKEN = process.env.TOKEN;
 
 const filter = new Filter();
-filter.addWords('Reddit', 'reddit', 'redditor', 'askreddit', 'karma', 'subreddit', 'repost', 'crosspost', 'sexual', 'flirt', 'flirting', "into you", 'date'); // Flter out some reddit-related words and other words
+filter.addWords(...JSON_FILTER.words); // Filter out words from the JSON file
 
 const mongoclient = new mongo.MongoClient(process.env.MONGO_DB_CONNECTION, { useUnifiedTopology: true, useNewUrlParser: true });
 

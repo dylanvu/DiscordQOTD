@@ -6,7 +6,7 @@
   "main": "redditqotd.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node redditqotd.js"
+    "start": "node --experimental-json-modules redditqotd.js"
   },
   "repository": {
     "type": "git",
