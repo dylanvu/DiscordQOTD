@@ -82,10 +82,13 @@ async function SendQuestionToAllChannels(mongoclient) {
         questionTosend = GetNonProfaneQuestion(post, prevQset, filter, 100);
     }
     let question;
+    let questionTosave; // Temporary fix, since if you do !qotd_newq immediately after all channels are sent messages, mongodb saves **QOTD as well so you get a duplicate question.
     // If the top 100 posts ALL have profanity, throw a general error
     if (questionTosend.profanity) {
         question = "404 Question not found. Please make your own QOTD this time, sorry!";
+        questionTosave = question;
     } else {
+        questionTosave = questionTosend.question;
         question = "**QOTD: " + questionTosend.question +  "**";
     }
 
@@ -96,7 +99,7 @@ async function SendQuestionToAllChannels(mongoclient) {
 
     // Reset previous question for every channel to be the current top question
     channelCollection.update({}, { $set: {
-        prev_question : [question]
+        prev_question : [questionTosave]
     }});
 
     allCursor.forEach((thisChannel) => {
@@ -274,7 +277,7 @@ client.on("message", msg => {
     }
 
     // Joke Test
-    if (msg.content === "!qotd_testing"){
+    if (msg.content === "!qotd_testing") {
         let [channelid, guildid] = GetMessageIDs(msg);
         client.channels.cache.get(channelid).send(process.env.FUNNY_ERROR);
         setTimeout(() => {
@@ -295,3 +298,5 @@ client.login(BOT_TOKEN);
 // TODO: Create functions for repeated code
 // TODO: Set user permissions to use bot?
 // TODO: Toggle filter option
+// TODO: Reset once week instead?
+// TODO: Don't save the 404 question not found
