@@ -450,7 +450,7 @@ client.on("message", msg => {
         msg.reply("https://github.com/vu-dylan/DiscordQOTD");
     }
     if (msg.content === "!qotd_help") {
-        msg.reply("To add QOTD, do `!qotd_start` \nTo remove QOTD, do `!qotd_stop` \nTo get a new question, do `!qotd_newq` \nTo view the code, do `!qotd_github`");
+        msg.reply("To add QOTD, do `!qotd_start` \nTo remove QOTD, do `!qotd_stop` \nTo get a new question, do `!qotd_newq` \n To add Programming QOTD, do `!npm start` \n To remove Programming QOTD, do `!ctrl c` \n To view the bot's code, do `!qotd_github`");
     }
 
     // Joke Test
