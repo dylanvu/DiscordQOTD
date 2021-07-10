@@ -383,7 +383,7 @@ async function RemoveChannelIfExists(mongoclient, channelid, guildid, msg, colle
         if (collectionName == "ActiveChannels") {
             msg.reply("Stopping QOTD in this channel... D:");
         } else if (collectionName == "CSActiveChannels") {
-            msg.reply("Terminated Daily Programmign Question from channel.")
+            msg.reply("Terminated Daily Programming Question from channel.")
         } else {
             console.log("Attempting to delete channel from <" + collectionName + "> but cannot find match to collection")
         }
