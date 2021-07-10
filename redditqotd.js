@@ -436,9 +436,9 @@ client.on("message", msg => {
         RemoveChannelFromDatabase(channelid, guildid, msg, "CSActiveChannels");
     }
 
-    if (msg.content ==="!cstest") {
-        GetAndSendCSQuestion();
-    }
+    // if (msg.content ==="!cstest") {
+    //     GetAndSendCSQuestion();
+    // }
 
     // Instantly Generating another question
     if (msg.content === "!qotd_newq") {
