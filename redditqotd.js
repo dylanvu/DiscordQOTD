@@ -46,7 +46,7 @@ const GetMessageIDs = (msg) => {
 
 // Schedule a message using cron
 // 0 0 9 * * * means 9:00 AM exactly
-let testJob = new cron.CronJob('0 0 9 * * *', () => {
+let testJob = new cron.CronJob('0 0 10 * * *', () => {
     console.log("Sending question to all channels");
     GetAndSendQuestion();
     GetAndSendCSQuestion();
