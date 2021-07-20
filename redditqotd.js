@@ -48,8 +48,20 @@ const GetMessageIDs = (msg) => {
 // 0 0 9 * * * means 9:00 AM exactly
 let testJob = new cron.CronJob('0 0 10 * * *', () => {
     console.log("Sending question to all channels");
-    GetAndSendQuestion();
-    GetAndSendCSQuestion();
+    try {
+        GetAndSendQuestion();
+    } catch (error) {
+        client.channels.cache.get(process.env.DEBUG_CHANNEL_ID).send("Error in QOTD!");
+        client.channels.cache.get(process.env.DEBUG_CHANNEL_ID).send(error);
+    }
+    
+    try {
+        GetAndSendCSQuestion();
+    } catch (error) {
+        client.channels.cache.get(process.env.DEBUG_CHANNEL_ID).send("Error in CS QOTD!");
+        client.channels.cache.get(process.env.DEBUG_CHANNEL_ID).send(error);
+    }
+    
 }, null, true, 'America/Los_Angeles');
 
 testJob.start();
