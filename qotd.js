@@ -44,9 +44,9 @@ const GetMessageIDs = (msg) => {
     return [channelid, guildid]
 }
 
-// Schedule a message using cron
+// Schedule daily qotd using cron
 // 0 0 9 * * * means 9:00 AM exactly
-let testJob = new cron.CronJob('0 0 10 * * *', () => {
+let qotdJob = new cron.CronJob('0 0 9 * * *', () => {
     console.log("Sending question to all channels");
     try {
         GetAndSendQuestion();
@@ -64,23 +64,47 @@ let testJob = new cron.CronJob('0 0 10 * * *', () => {
     
 }, null, true, 'America/Los_Angeles');
 
-testJob.start();
+qotdJob.start();
 
 // <--------------------------------------- QOTD Question Sending Functions --------------------------------------->
 
 async function IterateAndSendToAll(mongoclient, collectionName, question, questionTosave) {
     let channelCollection = await mongoclient.db().collection(collectionName);
+    //console.log(channelCollection);
     let allCursor = await channelCollection.find();
-
+    // TODO: Reset doesn't seem to work?
     // Reset previous question for every channel to be the current top question
-    channelCollection.update({}, { $set: {
+    await channelCollection.updateMany({}, { $set: {
         prev_question : [questionTosave]
     }});
-
-    allCursor.forEach((thisChannel) => {
+    let channelDeletion = [];
+    await allCursor.forEach((thisChannel) => {
+        //console.log(thisChannel);
+        //console.log(thisChannel.channel_id);
         // TODO: Add channel deletion check here and removal from collection
-        client.channels.cache.get(thisChannel.channel_id).send(question);
+
+        // There was a bug where a channel did not exist for some reason except it was in the database, and I couldn't find it at all
+        // If DiscordJS can find the channel, send the question. Else, DiscordJS can't find a channel and delete it from the database
+        if (client.channels.cache.get(thisChannel.channel_id)) {
+            client.channels.cache.get(thisChannel.channel_id).send(question);
+            //console.log("(Debug) Message sent to " + thisChannel.channel_id);
+        } else {
+            console.log(thisChannel.channel_id + " does not exist when sending daily question. Deleting from database.")
+            channelDeletion.push(thisChannel.channel_id);
+        }
     })
+    // console.log(channelDeletion);
+
+    // Delete all undefined channels
+    if (channelDeletion.length != 0) {
+        channelDeletion.forEach((channelid) => {
+            channelCollection.deleteOne({
+                channel_id : channelid
+            }, true)
+        })
+    }
+
+
 }
 
 async function GetAndSendQuestion() {
@@ -270,7 +294,7 @@ async function SendDailyCS(mongoclient) {
         return(response.json());
     }).then(response_json => {
         console.log("Access token obtained.");
-        let access_token = response_json.access_token
+        let access_token = response_json.access_token;
 
         const GMAIL_API_KEY = process.env.GMAIL_API_KEY;
         const USER_ID = process.env.GMAIL_USER_ID;
@@ -452,6 +476,10 @@ client.on("message", msg => {
     //     GetAndSendCSQuestion();
     // }
 
+    if (msg.content === "!debug") {
+        GetAndSendQuestion();
+    }
+
     // Instantly Generating another question
     if (msg.content === "!qotd_newq") {
         let [channelid, guildid] = GetMessageIDs(msg);
@@ -490,3 +518,4 @@ client.login(BOT_TOKEN);
 // TODO: Reset once week instead?
 // TODO: Don't save the 404 question not found
 // TODO: Error checking on channel collection parameter?
+// TODO: Move functions into separate files
