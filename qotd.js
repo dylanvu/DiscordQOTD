@@ -23,7 +23,7 @@ const client = new Discord.Client();
 const BOT_TOKEN = process.env.TOKEN;
 
 const filter = new Filter();
-filter.addWords(...JSON_FILTER.words); // Filter out words from the JSON file
+filter.addWords(...JSON_FILTER.words); // Filter out words from the JSON file, note that the filter is entire words. So "redditor" in the filter does not filter out "redditors"
 
 const mongoclient = new mongo.MongoClient(process.env.MONGO_DB_CONNECTION, { useUnifiedTopology: true, useNewUrlParser: true });
 
