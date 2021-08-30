@@ -9,7 +9,7 @@ import JSON_FILTER from "./filteredwords.json"
 import fetch from 'node-fetch'
 // Note: start with a `--experimental-json-modules`
 
-import GetNonProfaneQuestion from './GetNonProfaneQuestion.js'
+import GetValidQuestion from './GetValidQuestion.js'
 
 dotenv.config();
 
@@ -54,13 +54,15 @@ let qotdJob = new cron.CronJob('0 0 9 * * *', () => {
         client.channels.cache.get(process.env.DEBUG_CHANNEL_ID).send("Error in QOTD!");
         client.channels.cache.get(process.env.DEBUG_CHANNEL_ID).send(error);
     }
+
+    // Send CS QOTD
     
-    try {
-        GetAndSendCSQuestion();
-    } catch (error) {
-        client.channels.cache.get(process.env.DEBUG_CHANNEL_ID).send("Error in CS QOTD!");
-        client.channels.cache.get(process.env.DEBUG_CHANNEL_ID).send(error);
-    }
+    // try {
+    //     GetAndSendCSQuestion();
+    // } catch (error) {
+    //     client.channels.cache.get(process.env.DEBUG_CHANNEL_ID).send("Error in CS QOTD!");
+    //     client.channels.cache.get(process.env.DEBUG_CHANNEL_ID).send(error);
+    // }
     
 }, null, true, 'America/Los_Angeles');
 
@@ -79,8 +81,6 @@ async function IterateAndSendToAll(mongoclient, collectionName, question, questi
     }});
     let channelDeletion = [];
     await allCursor.forEach((thisChannel) => {
-        //console.log(thisChannel);
-        //console.log(thisChannel.channel_id);
         // TODO: Add channel deletion check here and removal from collection
 
         // There was a bug where a channel did not exist for some reason except it was in the database, and I couldn't find it at all
@@ -93,7 +93,6 @@ async function IterateAndSendToAll(mongoclient, collectionName, question, questi
             channelDeletion.push(thisChannel.channel_id);
         }
     })
-    // console.log(channelDeletion);
 
     // Delete all undefined channels
     if (channelDeletion.length != 0) {
@@ -128,11 +127,11 @@ async function SendQuestionToAllChannels(mongoclient) {
 
     // See if the top 25 posts are profane free, and get the first one
     let prevQset = new Set();
-    questionTosend = GetNonProfaneQuestion(post, prevQset, filter, 25)
+    questionTosend = GetValidQuestion(post, prevQset, filter, 25)
     // If, for some reason, the top 25 results ALL have profanity, try the top 100 posts
     if (questionTosend.profanity) {
         post = await Axios.get(TOP_POST_API + "?limit=100");
-        questionTosend = GetNonProfaneQuestion(post, prevQset, filter, 100);
+        questionTosend = GetValidQuestion(post, prevQset, filter, 100);
     }
     let question;
     let questionTosave; // Temporary fix, since if you do !qotd_newq immediately after all channels are sent messages, mongodb saves **QOTD as well so you get a duplicate question.
@@ -149,22 +148,9 @@ async function SendQuestionToAllChannels(mongoclient) {
 
     // Now, use MongoDB to get active channels and send
     IterateAndSendToAll(mongoclient, "ActiveChannels", question, questionTosave);
-    // let channelCollection = await mongoclient.db().collection("ActiveChannels");
-    // let allCursor = await channelCollection.find();
-
-    // // Reset previous question for every channel to be the current top question
-    // channelCollection.update({}, { $set: {
-    //     prev_question : [questionTosave]
-    // }});
-
-    // allCursor.forEach((thisChannel) => {
-    //     // TODO: Add channel deletion check here and removal from collection
-    //     client.channels.cache.get(thisChannel.channel_id).send(question);
-    // })
 }
 
 async function GetAndSendQuestionToChannel(channelid, guildid, msg) {
-
     try {
         // Connect to MongoDB Cluster
         //await mongoclient.connect();
@@ -194,11 +180,11 @@ async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
         let prevQset = new Set(someCursor.prev_question);
         
         // See if the top 25 posts are profane free and not a previous one, and get the first one
-        questionTosend = GetNonProfaneQuestion(post, prevQset, filter, 25);
+        questionTosend = GetValidQuestion(post, prevQset, filter, 25);
         // If, for some reason, the top 25 results ALL have profanity, try the top 100 posts
         if (questionTosend.profanity) {
             post = await Axios.get(TOP_POST_API + "?limit=100");
-            questionTosend = GetNonProfaneQuestion(post, prevQset, filter, 100);
+            questionTosend = GetValidQuestion(post, prevQset, filter, 100);
         }
         
         // If the top 100 posts ALL have profanity, throw a general error
@@ -220,6 +206,41 @@ async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
         client.channels.cache.get(channelid).send(question);
     } else {
         msg.reply("It appears you haven't added QOTD to this channel yet. Do `!qotd_start` **then** do `!qotd_newq`!")
+    };
+}
+
+async function GetLastAskedQuestionToChannel(channelid, guildid, msg) {
+    try {
+        // Connect to MongoDB Cluster
+        //await mongoclient.connect();
+        await ShowLastQuestion(mongoclient, channelid, guildid, msg);
+    } catch (e) {
+        console.error(e);
+    } finally {
+        //await mongoclient.close();
+    }
+}
+
+async function ShowLastQuestion(mongoclient, channelid, guildid, msg) {
+    let channelCollection = await mongoclient.db().collection("ActiveChannels");
+    let someCursor = await channelCollection.findOne(
+        {
+            channel_id : channelid,
+            guild_id : guildid
+        }
+    );
+    if (someCursor) {
+        // If a user is trying to get the last question and there are no questions yet, just get the next question instead
+        if (someCursor.prev_question.length == 0) {
+            GetAndSendQuestionToChannel(channelid, guildid, msg);
+        } else {
+            // Get the most recent question, the last element of the prev_question array, and send to channel
+            let question = someCursor.prev_question.slice(-1);
+            client.channels.cache.get(channelid).send("**QOTD: " + question + "**");
+        }
+
+    } else {
+        msg.reply("It appears you haven't added QOTD to this channel yet. Do `!qotd_start` **then** do `!qotd_today`!")
     };
 }
 
@@ -455,11 +476,11 @@ client.on("message", msg => {
         AddChannelToDatabase(mongoclient, channelid, guildid, msg, "ActiveChannels");
     }
 
-    if (msg.content === "!npm start") {
-        // Add the channel to the mongodb database
-        let [channelid, guildid] = GetMessageIDs(msg);
-        AddChannelToDatabase(mongoclient, channelid, guildid, msg, "CSActiveChannels");
-    }
+    // if (msg.content === "!npm start") {
+    //     // Add the channel to the mongodb database
+    //     let [channelid, guildid] = GetMessageIDs(msg);
+    //     AddChannelToDatabase(mongoclient, channelid, guildid, msg, "CSActiveChannels");
+    // }
     
     // Remove scheduled QOTD from current channel
     if (msg.content ==="!qotd_stop") {
@@ -467,18 +488,18 @@ client.on("message", msg => {
         RemoveChannelFromDatabase(channelid, guildid, msg, "ActiveChannels");
     }
 
-    if (msg.content ==="!ctrl c") {
-        let [channelid, guildid] = GetMessageIDs(msg);
-        RemoveChannelFromDatabase(channelid, guildid, msg, "CSActiveChannels");
-    }
+    // if (msg.content ==="!ctrl c") {
+    //     let [channelid, guildid] = GetMessageIDs(msg);
+    //     RemoveChannelFromDatabase(channelid, guildid, msg, "CSActiveChannels");
+    // }
 
     // if (msg.content ==="!cstest") {
     //     GetAndSendCSQuestion();
     // }
 
-    if (msg.content === "!debug") {
-        GetAndSendQuestion();
-    }
+    // if (msg.content === "!debug") {
+    //     GetAndSendQuestion();
+    // }
 
     // Instantly Generating another question
     if (msg.content === "!qotd_newq") {
@@ -486,11 +507,20 @@ client.on("message", msg => {
         GetAndSendQuestionToChannel(channelid, guildid, msg);
     }
 
+    // Display last QOTD sent to channel
+
+    if (msg.content === "!qotd_today") {
+        let [channelid, guildid] = GetMessageIDs(msg);
+        GetLastAskedQuestionToChannel(channelid, guildid, msg);
+        
+    }
+
     if (msg.content === "!qotd_github") {
         msg.reply("https://github.com/vu-dylan/DiscordQOTD");
     }
     if (msg.content === "!qotd_help") {
-        msg.reply("To add QOTD, do `!qotd_start` \nTo remove QOTD, do `!qotd_stop` \nTo get a new question, do `!qotd_newq` \n To add Programming QOTD, do `!npm start` \n To remove Programming QOTD, do `!ctrl c` \n To view the bot's code, do `!qotd_github`");
+        //msg.reply("To add QOTD, do `!qotd_start` \nTo remove QOTD, do `!qotd_stop` \n To get a new question, do `!qotd_newq` \n To show the current QOTD, do `!qotd_today` \n To add Programming QOTD, do `!npm start` \n To remove Programming QOTD, do `!ctrl c` \n To view the bot's code, do `!qotd_github`");
+        msg.reply("To add QOTD, do `!qotd_start` \nTo remove QOTD, do `!qotd_stop` \n To get a new question, do `!qotd_newq` \n To show the current QOTD, do `!qotd_today` \n To view the bot's code, do `!qotd_github`");
     }
 
     // Joke Test
@@ -507,6 +537,7 @@ client.on("message", msg => {
 
 client.login(BOT_TOKEN);
 
+// TODO: Migrate to slash commands
 // TODO: Randomly select from top posts?
 // TODO: Integrate custom questions?
 // TODO: Save questions to a database, incorporate a database mode?
@@ -515,7 +546,9 @@ client.login(BOT_TOKEN);
 // TODO: Create functions for repeated code
 // TODO: Set user permissions to use bot?
 // TODO: Toggle filter option
-// TODO: Reset once week instead?
+// TODO: Reset once a week instead?
 // TODO: Don't save the 404 question not found
 // TODO: Error checking on channel collection parameter?
 // TODO: Move functions into separate files
+// TODO: On script termination on BUILD CODE, send a message to all channels that the bot is temporarily down
+// TODO: On startup ON BUILD CODE, send a message to all channels
