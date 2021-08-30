@@ -15,9 +15,13 @@ It's perfect for some community engagement by prompting some discussion.
 * `!qotd_help` for a list of commands
 * `!qotd_start` to start daily questions in your channel
 * `!qotd_stop` to stop daily questions in your channel
+* `!qotd_today` to view the current QOTD in your channel
+* `!qotd_github` to view this respository
+
+## Removed Commands
 * `!npm start` to start daily Programming questions in your channel
 * `!ctrl c` to stop daily Programming questions in your channel
-* `!qotd_github` to view this respository
+
 ## Technologies Used
 * [Node.JS](https://nodejs.org/en/) - Java Runtime Environment, the main "language" (technically JavaScript)
 * [DiscordJS](https://discord.js.org/#/) - module for interacting with Discord
@@ -25,5 +29,6 @@ It's perfect for some community engagement by prompting some discussion.
 * [Axios](https://www.npmjs.com/package/axios) - getting questions from Reddit
 * [MongoDB](https://www.mongodb.com/) - storing channel ids to send the QOTD messages to
 * [cron](https://www.npmjs.com/package/cron) - to schedule QOTD messages
+
 ## Issues
 * Due to the method of hosting this Discord Bot, there are random (but short) outages. If well timed enough to overlap with 9:00 AM PST, a question will NOT be sent that day without any notification. There's no way around this issue except for a dedicated paid hosting service.
