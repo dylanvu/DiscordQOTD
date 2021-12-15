@@ -1,15 +1,13 @@
 import dotenv from 'dotenv'
-import Axios from 'axios'
 import Discord from "discord.js"
 import cron from 'cron'
 import Filter from 'bad-words'
 import mongo from 'mongodb'
 import express from 'express'
 import JSON_FILTER from "./filteredwords.json"
-import fetch from 'node-fetch'
 // Note: start with a `--experimental-json-modules`
 
-import GetValidQuestion from './GetValidQuestion.js'
+import { GetValidQuestion } from './GetValidQuestion.js'
 
 dotenv.config();
 
@@ -61,14 +59,30 @@ qotdJob.start();
 
 // <--------------------------------------- QOTD Question Sending Functions --------------------------------------->
 
-async function IterateAndSendToAll(mongoclient, collectionName, question, questionTosave) {
+function SendToOne(question, channel_id) {
+    // This function sends the question to a single channel by channel id and returns a boolean whether it was successful or not
+    // Format question to send
+    question = "**QOTD: " + question +  "**";
+    if (client.channels.cache.get(channel_id)) {
+        client.channels.cache.get(channel_id).send(question);
+        return true;
+    } else {
+        console.log(channel_id + " does not exist when sending daily question. Deleting from database.")
+        channelDeletion.push(thisChannel.channel_id);
+        return false;
+    }
+}
+
+// <--------------------------------------- Old QOTD code ---------------------------------------------------------->
+
+async function IterateAndSendToAll(mongoclient, collectionName, question) {
     let channelCollection = await mongoclient.db().collection(collectionName);
     //console.log(channelCollection);
     let allCursor = await channelCollection.find();
     // TODO: Reset doesn't seem to work?
     // Reset previous question for every channel to be the current top question
     await channelCollection.updateMany({}, { $set: {
-        prev_question : [questionTosave]
+        prev_question : [question]
     }});
     let channelDeletion = [];
     await allCursor.forEach((thisChannel) => {
@@ -76,11 +90,10 @@ async function IterateAndSendToAll(mongoclient, collectionName, question, questi
 
         // There was a bug where a channel did not exist for some reason except it was in the database, and I couldn't find it at all
         // If DiscordJS can find the channel, send the question. Else, DiscordJS can't find a channel and delete it from the database
-        if (client.channels.cache.get(thisChannel.channel_id)) {
-            client.channels.cache.get(thisChannel.channel_id).send(question);
-            //console.log("(Debug) Message sent to " + thisChannel.channel_id);
-        } else {
-            console.log(thisChannel.channel_id + " does not exist when sending daily question. Deleting from database.")
+
+        let sendResult = SendToOne(question, thisChannel.channel_id);
+        if (!sendResult) {
+            // if the send was unsuccessful due to the channel_id not existing, delete it from the database
             channelDeletion.push(thisChannel.channel_id);
         }
     })
@@ -93,8 +106,6 @@ async function IterateAndSendToAll(mongoclient, collectionName, question, questi
             }, true)
         })
     }
-
-
 }
 
 async function GetAndSendQuestion() {
@@ -111,34 +122,12 @@ async function GetAndSendQuestion() {
 }
 
 async function SendQuestionToAllChannels(mongoclient) {
-    const TOP_POST_API = "https://www.reddit.com/r/askreddit/top.json";
-    // TODO: Error catching
-    let post = await Axios.get(TOP_POST_API);
-    let questionTosend;
 
-    // See if the top 25 posts are profane free, and get the first one
     let prevQset = new Set();
-    questionTosend = GetValidQuestion(post, prevQset, filter, 25)
-    // If, for some reason, the top 25 results ALL have profanity, try the top 100 posts
-    if (questionTosend.profanity) {
-        post = await Axios.get(TOP_POST_API + "?limit=100");
-        questionTosend = GetValidQuestion(post, prevQset, filter, 100);
-    }
-    let question;
-    let questionTosave; // Temporary fix, since if you do !qotd_newq immediately after all channels are sent messages, mongodb saves **QOTD as well so you get a duplicate question.
-    // If the top 100 posts ALL have profanity, throw a general error
-    if (questionTosend.profanity) {
-        question = "404 Question not found. Please make your own QOTD this time, sorry!";
-        questionTosave = question;
-    } else {
-        questionTosave = questionTosend.question;
-        question = "**QOTD: " + questionTosend.question +  "**";
-    }
-
-    // TODO: Randomize between non-profane questions? So people who commonly use Reddit will see a relatively new question?
+    let question = await GetValidQuestion(prevQset, filter);
 
     // Now, use MongoDB to get active channels and send
-    IterateAndSendToAll(mongoclient, "ActiveChannels", question, questionTosave);
+    IterateAndSendToAll(mongoclient, "ActiveChannels", question);
 }
 
 async function GetAndSendQuestionToChannel(channelid, guildid, msg) {
@@ -154,11 +143,7 @@ async function GetAndSendQuestionToChannel(channelid, guildid, msg) {
 }
 
 async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
-    const TOP_POST_API = "https://www.reddit.com/r/askreddit/top.json";
-    // TODO: Error catching
-    let post = await Axios.get(TOP_POST_API);
     //let question;
-    let questionTosend; // This is an object with attribute question and profanity
     let channelCollection = await mongoclient.db().collection("ActiveChannels");
     let someCursor = await channelCollection.findOne(
         {
@@ -169,24 +154,8 @@ async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
     if (someCursor) {
         // Create a set from the MongoDB array to enable quicker checking of previous questions
         let prevQset = new Set(someCursor.prev_question);
-        
-        // See if the top 25 posts are profane free and not a previous one, and get the first one
-        questionTosend = GetValidQuestion(post, prevQset, filter, 25);
-        // If, for some reason, the top 25 results ALL have profanity, try the top 100 posts
-        if (questionTosend.profanity) {
-            post = await Axios.get(TOP_POST_API + "?limit=100");
-            questionTosend = GetValidQuestion(post, prevQset, filter, 100);
-        }
-        
-        // If the top 100 posts ALL have profanity, throw a general error
-        let question;
-        if (questionTosend.profanity) {
-            question = "404 Question not found. Please make your own QOTD this time, sorry!";
-        } else {
-            prevQset.add(questionTosend.question);
-            question = "**QOTD: " + questionTosend.question +  "**";
-        };
-        
+        let question = await GetValidQuestion(prevQset, filter);
+        prevQset.add(question);
         console.log("Sending question to channel " + channelid);
         await channelCollection.updateOne({
             channel_id : channelid,
@@ -194,7 +163,7 @@ async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
         }, { $set: {
             prev_question : Array.from(prevQset)
         }});
-        client.channels.cache.get(channelid).send(question);
+        SendToOne(question, channelid);
     } else {
         msg.reply("It appears you haven't added QOTD to this channel yet. Do `!qotd_start` **then** do `!qotd_newq`!")
     };
@@ -348,10 +317,6 @@ client.on("message", msg => {
         let [channelid, guildid] = GetMessageIDs(msg);
         RemoveChannelFromDatabase(channelid, guildid, msg, "ActiveChannels");
     }
-
-    // if (msg.content === "!debug") {
-    //     GetAndSendQuestion();
-    // }
 
     // Instantly Generating another question
     if (msg.content === "!qotd_newq") {
