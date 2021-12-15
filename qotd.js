@@ -62,9 +62,13 @@ qotdJob.start();
 function SendToOne(question, channel_id) {
     // This function sends the question to a single channel by channel id and returns a boolean whether it was successful or not
     // Format question to send
-    question = "**QOTD: " + question +  "**";
+    let embed = new Discord.MessageEmbed()
+    .setTitle(`**Question of the Day**`)
+    .setColor("#e53426")
+    .addField("Today's question:", question);
     if (client.channels.cache.get(channel_id)) {
-        client.channels.cache.get(channel_id).send(question);
+        // https://www.reddit.com/r/learnjavascript/comments/owol17/discordjs_discordapierror_cannot_send_an_empty/ different from typescript????
+        client.channels.cache.get(channel_id).send({embed: embed});
         return true;
     } else {
         console.log(channel_id + " does not exist when sending daily question. Deleting from database.")
