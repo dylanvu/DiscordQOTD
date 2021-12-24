@@ -356,6 +356,14 @@ client.on("message", msg => {
     }
 })
 
+// 429 is a rate limit
+client.on('debug', function (debug) {
+    console.log(debug);
+    if (debug.includes("429")) { // 429 is a rate limit, kill replit if it is rate limited
+        exec("kill 1");
+    }
+});
+
 client.login(BOT_TOKEN);
 
 // TODO: Migrate to slash commands
