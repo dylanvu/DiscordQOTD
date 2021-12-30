@@ -359,9 +359,9 @@ client.on("message", msg => {
         }, 10000);
     }
 
-    if (msg.content === "!qotd_debug") {
-        GetAndSendQuestion();
-    }
+    // if (msg.content === "!qotd_debug") {
+    //     GetAndSendQuestion();
+    // }
 })
 
 // 429 is a rate limit
