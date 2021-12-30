@@ -19,7 +19,7 @@ APP.get('/', (req, res) => res.send('Hello World!'));
 APP.listen(PORT, () => console.log(`Discord QOTD app listening at http://localhost:${PORT}`));
 
 const client = new Discord.Client();
-const BOT_TOKEN = process.env.TOKEN;
+const BOT_TOKEN = process.env.TOKEN_PROD;
 
 const filter = new Filter();
 filter.addWords(...JSON_FILTER.words); // Filter out words from the JSON file, note that the filter is entire words. So "redditor" in the filter does not filter out "redditors"
@@ -72,7 +72,6 @@ function SendToOne(question, channel_id) {
         return true;
     } else {
         console.log(channel_id + " does not exist when sending daily question. Deleting from database.")
-        channelDeletion.push(thisChannel.channel_id);
         return false;
     }
 }
