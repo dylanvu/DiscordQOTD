@@ -5,6 +5,7 @@ import Filter from 'bad-words'
 import mongo from 'mongodb'
 import express from 'express'
 import JSON_FILTER from "./filteredwords.json"
+import CreateErrorLog from './error-logs/createLog';
 // Note: start with a `--experimental-json-modules`
 
 import { GetValidQuestion } from './GetValidQuestion.js'
@@ -49,8 +50,7 @@ let qotdJob = new cron.CronJob('0 0 9 * * *', () => {
     try {
         GetAndSendQuestion();
     } catch (error) {
-        client.channels.cache.get(process.env.DEBUG_CHANNEL_ID).send("Error in QOTD!");
-        client.channels.cache.get(process.env.DEBUG_CHANNEL_ID).send(error);
+        CreateErrorLog(error);
     }
     
 }, null, true, 'America/Los_Angeles');
@@ -120,6 +120,7 @@ async function GetAndSendQuestion() {
         await SendQuestionToAllChannels(mongoclient);
     } catch (e) {
         console.error(e);
+        CreateErrorLog(e);
     } finally {
         //await mongoclient.close();
     }
@@ -141,6 +142,7 @@ async function GetAndSendQuestionToChannel(channelid, guildid, msg) {
         await SendQuestionToChannel(mongoclient, channelid, guildid, msg);
     } catch (e) {
         console.error(e);
+        CreateErrorLog(e);
     } finally {
         //await mongoclient.close();
     }
@@ -180,6 +182,7 @@ async function GetLastAskedQuestionToChannel(channelid, guildid, msg) {
         await ShowLastQuestion(mongoclient, channelid, guildid, msg);
     } catch (e) {
         console.error(e);
+        CreateErrorLog(e);
     } finally {
         //await mongoclient.close();
     }
@@ -217,6 +220,7 @@ async function AddChannelToDatabase(mongoclient, channelid, guildid, msg, collec
         await AddChannelIfExists(mongoclient, channelid, guildid, msg, collectionName);
     } catch (e) {
         console.error(e);
+        CreateErrorLog(e);
     } finally {
         //await mongoclient.close();
     };
@@ -263,6 +267,7 @@ async function RemoveChannelFromDatabase(channelid, guildid, msg, collectionName
         await RemoveChannelIfExists(mongoclient, channelid, guildid, msg, collectionName);
     } catch (e) {
         console.error(e);
+        CreateErrorLog(e);
     } finally {
         //await mongoclient.close();
     }
@@ -352,7 +357,10 @@ client.on("message", msg => {
             client.channels.cache.get(channelid).send(process.env.FUNNY_RESPONSE);
             GetAndSendQuestionToChannel(channelid, guildid, msg);
         }, 10000);
-        
+    }
+
+    if (msg.content === "!qotd_debug") {
+        GetAndSendQuestion();
     }
 })
 
