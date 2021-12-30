@@ -5,7 +5,7 @@ import Filter from 'bad-words'
 import mongo from 'mongodb'
 import express from 'express'
 import JSON_FILTER from "./filteredwords.json"
-import CreateErrorLog from './error-logs/createLog';
+import { CreateErrorLog } from './error-logs/createLog.js';
 // Note: start with a `--experimental-json-modules`
 
 import { GetValidQuestion } from './GetValidQuestion.js'

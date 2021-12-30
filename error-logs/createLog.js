@@ -25,3 +25,5 @@ export const CreateErrorLog = (errorData) => {
         }
     });
 }
+
+export default CreateErrorLog;
