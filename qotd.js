@@ -52,7 +52,7 @@ let qotdJob = new cron.CronJob('0 0 9 * * *', () => {
     } catch (error) {
         CreateErrorLog(error);
     }
-    
+
 }, null, true, 'America/Los_Angeles');
 
 qotdJob.start();
@@ -63,15 +63,16 @@ function SendToOne(question, channel_id) {
     // This function sends the question to a single channel by channel id and returns a boolean whether it was successful or not
     // Format question to send
     let embed = new Discord.MessageEmbed()
-    .setTitle(`**Question of the Day**`)
-    .setColor("#e53426")
-    .addField("Today's question:", question);
+        .setTitle(`**Question of the Day**`)
+        .setColor("#e53426")
+        .addField("Today's question:", question);
     if (client.channels.cache.get(channel_id)) {
         // https://www.reddit.com/r/learnjavascript/comments/owol17/discordjs_discordapierror_cannot_send_an_empty/ different from typescript????
-        client.channels.cache.get(channel_id).send({embed: embed});
+        client.channels.cache.get(channel_id).send({ embed: embed });
         return true;
     } else {
-        console.log(channel_id + " does not exist when sending daily question. Deleting from database.")
+        console.log(channel_id + " does not exist when sending daily question. Deleting from database.");
+        CreateErrorLog(`${channel_id} does not exist when sending daily question. Deleting from database. The output of client.cache is: \n ${client.channels.cache}`);
         return false;
     }
 }
@@ -84,9 +85,11 @@ async function IterateAndSendToAll(mongoclient, collectionName, question) {
     let allCursor = await channelCollection.find();
     // TODO: Reset doesn't seem to work?
     // Reset previous question for every channel to be the current top question
-    await channelCollection.updateMany({}, { $set: {
-        prev_question : [question]
-    }});
+    await channelCollection.updateMany({}, {
+        $set: {
+            prev_question: [question]
+        }
+    });
     let channelDeletion = [];
     await allCursor.forEach((thisChannel) => {
         // TODO: Add channel deletion check here and removal from collection
@@ -105,7 +108,7 @@ async function IterateAndSendToAll(mongoclient, collectionName, question) {
     if (channelDeletion.length != 0) {
         channelDeletion.forEach((channelid) => {
             channelCollection.deleteOne({
-                channel_id : channelid
+                channel_id: channelid
             }, true)
         })
     }
@@ -152,8 +155,8 @@ async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
     let channelCollection = await mongoclient.db().collection("ActiveChannels");
     let someCursor = await channelCollection.findOne(
         {
-            channel_id : channelid,
-            guild_id : guildid
+            channel_id: channelid,
+            guild_id: guildid
         }
     );
     if (someCursor) {
@@ -163,11 +166,13 @@ async function SendQuestionToChannel(mongoclient, channelid, guildid, msg) {
         prevQset.add(question);
         console.log("Sending question to channel " + channelid);
         await channelCollection.updateOne({
-            channel_id : channelid,
-            guild_id : guildid
-        }, { $set: {
-            prev_question : Array.from(prevQset)
-        }});
+            channel_id: channelid,
+            guild_id: guildid
+        }, {
+            $set: {
+                prev_question: Array.from(prevQset)
+            }
+        });
         SendToOne(question, channelid);
     } else {
         msg.reply("It appears you haven't added QOTD to this channel yet. Do `!qotd_start` **then** do `!qotd_newq`!")
@@ -191,8 +196,8 @@ async function ShowLastQuestion(mongoclient, channelid, guildid, msg) {
     let channelCollection = await mongoclient.db().collection("ActiveChannels");
     let someCursor = await channelCollection.findOne(
         {
-            channel_id : channelid,
-            guild_id : guildid
+            channel_id: channelid,
+            guild_id: guildid
         }
     );
     if (someCursor) {
@@ -232,8 +237,8 @@ async function AddChannelIfExists(mongoclient, channelid, guildid, msg, collecti
     // Check if the channel exists in the database
     let someCursor = await channelCollection.findOne(
         {
-            channel_id : channelid,
-            guild_id : guildid,
+            channel_id: channelid,
+            guild_id: guildid,
         }
     )
     if (!someCursor) {
@@ -245,9 +250,9 @@ async function AddChannelIfExists(mongoclient, channelid, guildid, msg, collecti
         }
 
         channelCollection.insertOne({
-            channel_id : channelid,
-            guild_id : guildid,
-            prev_question : []
+            channel_id: channelid,
+            guild_id: guildid,
+            prev_question: []
         })
     } else {
         console.log(channelid + " already exists in database");
@@ -279,8 +284,8 @@ async function RemoveChannelIfExists(mongoclient, channelid, guildid, msg, colle
     // Check if the channel exists in the database
     let someCursor = await channelCollection.findOne(
         {
-            channel_id : channelid,
-            guild_id : guildid
+            channel_id: channelid,
+            guild_id: guildid
         }
     )
     if (someCursor) {
@@ -290,10 +295,10 @@ async function RemoveChannelIfExists(mongoclient, channelid, guildid, msg, colle
         } else {
             console.log("Attempting to delete channel from <" + collectionName + "> but cannot find match to collection")
         }
-        
+
         channelCollection.deleteOne({
-            channel_id : channelid,
-            guild_id : guildid
+            channel_id: channelid,
+            guild_id: guildid
         }, true)
     } else {
         console.log("Cannot delete channel that doesn't exist");
@@ -302,7 +307,7 @@ async function RemoveChannelIfExists(mongoclient, channelid, guildid, msg, colle
         } else {
             console.log("Attempting to delete channel from <" + collectionName + "> when it doesn't exist in database, but cannot find match to collection")
         }
-        
+
     }
 }
 
@@ -319,9 +324,9 @@ client.on("message", msg => {
         let [channelid, guildid] = GetMessageIDs(msg);
         AddChannelToDatabase(mongoclient, channelid, guildid, msg, "ActiveChannels");
     }
-    
+
     // Remove scheduled QOTD from current channel
-    if (msg.content ==="!qotd_stop") {
+    if (msg.content === "!qotd_stop") {
         let [channelid, guildid] = GetMessageIDs(msg);
         RemoveChannelFromDatabase(channelid, guildid, msg, "ActiveChannels");
     }
@@ -337,7 +342,7 @@ client.on("message", msg => {
     if (msg.content === "!qotd_today") {
         let [channelid, guildid] = GetMessageIDs(msg);
         GetLastAskedQuestionToChannel(channelid, guildid, msg);
-        
+
     }
 
     if (msg.content === "!qotd_github") {
